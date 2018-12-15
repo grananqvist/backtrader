@@ -25,13 +25,14 @@ import datetime
 import os
 import os.path
 import sys
+import numpy as np
+from sklearn.metrics import r2_score
 
 # append module root directory to sys.path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import backtrader as bt
 import backtrader.utils.flushfile
-
 
 modpath = os.path.dirname(os.path.abspath(__file__))
 dataspath = '../datas'
@@ -49,10 +50,7 @@ TODATE = datetime.datetime(2006, 12, 31)
 def getdata(index, fromdate=FROMDATE, todate=TODATE):
 
     datapath = os.path.join(modpath, dataspath, datafiles[index])
-    data = DATAFEED(
-        dataname=datapath,
-        fromdate=fromdate,
-        todate=todate)
+    data = DATAFEED(dataname=datapath, fromdate=fromdate, todate=todate)
 
     return data
 
@@ -77,10 +75,11 @@ def runtest(datas,
     for prload in preloads:
         for ronce in runonces:
             for exbar in exbars:
-                cerebro = bt.Cerebro(runonce=ronce,
-                                     preload=prload,
-                                     maxcpus=maxcpus,
-                                     exactbars=exbar)
+                cerebro = bt.Cerebro(
+                    runonce=ronce,
+                    preload=prload,
+                    maxcpus=maxcpus,
+                    exactbars=exbar)
 
                 if kwargs.get('main', False):
                     print('prload {} / ronce {} exbar {}'.format(
@@ -117,13 +116,14 @@ def runtest(datas,
 
 
 class TestStrategy(bt.Strategy):
-    params = dict(main=False,
-                  chkind=[],
-                  inddata=[],
-                  chkmin=1,
-                  chknext=0,
-                  chkvals=None,
-                  chkargs=dict())
+    params = dict(
+        main=False,
+        chkind=[],
+        inddata=[],
+        chkmin=1,
+        chknext=0,
+        chkvals=None,
+        chkargs=dict())
 
     def __init__(self):
         try:
@@ -160,9 +160,11 @@ class TestStrategy(bt.Strategy):
         if self.p.main:
             dtstr = self.data.datetime.date(0).strftime('%Y-%m-%d')
             print('%s - %d - %f' % (dtstr, len(self), self.ind[0]))
-            pstr = ', '.join(str(x) for x in
-                             [self.data.open[0], self.data.high[0],
-                              self.data.low[0], self.data.close[0]])
+            pstr = ', '.join(
+                str(x) for x in [
+                    self.data.open[0], self.data.high[0], self.data.low[0],
+                    self.data.close[0]
+                ])
             print('%s - %d, %s' % (dtstr, len(self), pstr))
 
     def start(self):
@@ -177,8 +179,8 @@ class TestStrategy(bt.Strategy):
             print('----------------------------------------')
             print('len ind %d == %d len self' % (l, len(self)))
             print('minperiod %d' % self.chkmin)
-            print('self.p.chknext %d nextcalls %d'
-                  % (self.p.chknext, self.nextcalls))
+            print('self.p.chknext %d nextcalls %d' % (self.p.chknext,
+                                                      self.nextcalls))
 
             print('chkpts are', chkpts)
             for chkpt in chkpts:
@@ -220,3 +222,46 @@ class TestStrategy(bt.Strategy):
                             assert chkval == linevals[i][0]
                         except AssertionError:
                             assert chkval == linevals[i][1]
+
+
+class SimilarityTestStrategy(TestStrategy):
+    """
+    Same purpose as `TestStrategy` above, but instead of testing for the exact values
+    of an indicator, make a similarity test using R^2 between the indicator and expected values.
+    """
+
+    def nextstart(self):
+        self.chkmin = self.p.chkmin - 1
+        super(TestStrategy, self).nextstart()
+
+    def stop(self):
+        l = len(self.ind)
+        mp = self.chkmin
+        chkpts = list(range(-l + mp, 1))
+
+        print('----------------------------------------')
+        print('len ind %d == %d len self' % (l, len(self)))
+        print('minperiod %d' % self.chkmin)
+        print('self.p.chknext %d nextcalls %d' % (self.p.chknext,
+                                                  self.nextcalls))
+
+        assert l == len(self)
+        if self.p.chknext:
+            assert self.p.chknext == self.nextcalls
+        for lidx, linevals in enumerate(self.p.chkvals):
+
+            indicator_vals = []
+
+            for i, chkpt in enumerate(chkpts):
+                chkval = self.ind.lines[lidx][chkpt]
+                assert np.isclose(chkval, linevals[i])
+                indicator_vals.append(chkval)
+
+            r2 = r2_score(linevals, indicator_vals)
+
+            assert r2 > 0.999, 'The R^2 of line {0} is {1}, which is less than acceptable'.format(
+                lidx, r2)
+
+            print('R^2 of line {0} is {1}'.format(lidx, r2))
+
+        print('PASSED TEST')
