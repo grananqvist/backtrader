@@ -122,7 +122,7 @@ class CommInfoBase(with_metaclass(MetaParams)):
     params = (
         ('commission', 0.0), ('mult', 1.0), ('margin', None),
         ('commtype', None),
-        ('stocklike', False),
+        ('stocklike', True),
         ('percabs', False),
         ('interest', 0.0),
         ('interest_long', False),

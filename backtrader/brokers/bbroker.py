@@ -236,7 +236,7 @@ class BackBroker(bt.BrokerBase):
         # slippage options
         ('slip_perc', 0.0),
         ('slip_fixed', 0.0),
-        ('slip_open', False),
+        ('slip_open', True),
         ('slip_match', True),
         ('slip_limit', True),
         ('slip_out', False),
