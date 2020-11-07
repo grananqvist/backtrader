@@ -846,6 +846,8 @@ class IBStore(with_metaclass(MetaSingleton, object)):
 
         # q.put(None)  # to kickstart backfilling
         # Can request 233 also for cash ... nothing will arrive
+        self.conn.reqMarketDataType(3)
+        print('WARNING: Market data type set to delayed')
         self.conn.reqMktData(tickerId, contract, bytes(ticks), False)
         return q
 

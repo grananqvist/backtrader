@@ -38,6 +38,9 @@ class Position(object):
     is not null
     '''
 
+    def __repr__(self):
+        return self.__str__()
+
     def __str__(self):
         items = list()
         items.append('--- Position Begin')

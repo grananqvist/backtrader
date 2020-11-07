@@ -151,8 +151,8 @@ class Trade(object):
             'historyon', 'history',
             'status')
 
-        return '\n'.join(
-            (':'.join((x, str(getattr(self, x)))) for x in toprint)
+        return ' '.join(
+            ('='.join((x, str(getattr(self, x)))) for x in toprint)
         )
 
     def __init__(self, data=None, tradeid=0, historyon=False,
