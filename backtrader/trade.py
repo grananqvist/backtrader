@@ -2,7 +2,7 @@
 # -*- coding: utf-8; py-indent-offset:4 -*-
 ###############################################################################
 #
-# Copyright (C) 2015, 2016, 2017 Daniel Rodriguez
+# Copyright (C) 2015-2020 Daniel Rodriguez
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -56,7 +56,7 @@ class TradeHistory(AutoOrderedDict):
     '''
 
     def __init__(self,
-                 status, dt, barlen, size, price, value, pnl, pnlcomm, tz):
+                 status, dt, barlen, size, price, value, pnl, pnlcomm, tz, event=None):
         '''Initializes the object to the current status of the Trade'''
         super(TradeHistory, self).__init__()
         self.status.status = status
@@ -68,6 +68,13 @@ class TradeHistory(AutoOrderedDict):
         self.status.pnl = pnl
         self.status.pnlcomm = pnlcomm
         self.status.tz = tz
+        if event is not None:
+            self.event = event
+
+    def __reduce__(self):
+        return (self.__class__, (self.status.status, self.status.dt, self.status.barlen, self.status.size,
+                                 self.status.price, self.status.value, self.status.pnl, self.status.pnlcomm,
+                                 self.status.tz, self.event, ))
 
     def doupdate(self, order, size, price, commission):
         '''Used to fill the ``update`` part of the history entry'''
@@ -115,7 +122,7 @@ class Trade(object):
       - ``baropen`` (``int``): bar in which this trade was opened
 
       - ``dtopen`` (``float``): float coded datetime in which the trade was
-        closed
+        opened
 
         - Use method ``open_datetime`` to get a Python datetime.datetime
           or use the platform provided ``num2date`` method
@@ -288,8 +295,8 @@ class Trade(object):
             # position reduced/closed
             pnl = comminfo.profitandloss(-size, self.price, price)
 
-            self.pnl += pnl
-            self.pnlcomm = self.pnl - self.commission
+        self.pnl += pnl
+        self.pnlcomm = self.pnl - self.commission
 
         self.value = comminfo.getvaluesize(self.size, self.price)
 
